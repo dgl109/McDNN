@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat May 24 23:13:54 2025
 
-@author: 王尧
-"""
 
 import tensorflow as tf
 import numpy as np
@@ -14,10 +9,20 @@ from tensorflow.keras.layers import Input
 from tensorflow.keras.layers import Dense,Flatten
 from tensorflow.keras.layers import Conv2D,MaxPooling2D
 from tensorflow.keras import backend as K
+from sklearn.metrics import roc_curve, auc
 K.clear_session()
 data=np.loadtxt(r"E:\2025年工作材料\杜国梁老师合作文件\new\train_data.txt")
-data_train=data[0:8267,0:10]
-label_train=tf.constant(data[0:8267,10])
+indices=np.random.permutation(len(data))
+train_size=int(len(data)*0.8)
+X=data[:,0:10]
+y=data[:,10]
+data_train=X[indices[:train_size]]
+label_train=y[indices[:train_size]]
+data_test=X[indices[train_size:]]
+label_test=y[indices[train_size:]]
+
+# data_train=data[0:8267,0:10]
+# label_train=tf.constant(data[0:8267,10])
 
 c0_train=tf.constant(data_train[:,0])    
 r1_train=tf.constant(data_train[:,1])
@@ -205,70 +210,69 @@ def plot_history(hist):
 plot_history(hist)
 """模型评价"""
 
-c0_test=tf.constant(data[8267:11810,0]) 
-r1_test=tf.constant(data[8267:11810,1])
-c2_test=tf.constant(data[8267:11810,2]) 
-r3_test=tf.constant(data[8267:11810,3]) 
+c0_test=tf.constant(data_test[:,0]) 
+r1_test=tf.constant(data_test[:,1])
+c2_test=tf.constant(data_test[:,2]) 
+r3_test=tf.constant(data_test[:,3]) 
 # r4_test=tf.constant(data[8267:11810,4]) 
-r5_test=tf.constant(data[8267:11810,4]) 
-r6_test=tf.constant(data[8267:11810,5]) 
-r7_test=tf.constant(data[8267:11810,6]) 
+r5_test=tf.constant(data_test[:,4]) 
+r6_test=tf.constant(data_test[:,5]) 
+r7_test=tf.constant(data_test[:,6]) 
 # r8_test=tf.constant(data[8267:11810,8]) 
-c9_test=tf.constant(data[8267:11810,7]) 
-r10_test=tf.constant(data[8267:11810,8]) 
-c11_test=tf.constant(data[8267:11810,9]) 
+c9_test=tf.constant(data_test[:,7]) 
+r10_test=tf.constant(data_test[:,8]) 
+c11_test=tf.constant(data_test[:,9]) 
 
-label_test=tf.constant(data[8267:11810,10])
 
 y_pred1 = model.predict([c0_test,r1_test,c2_test,r3_test,
                          r5_test,r6_test,r7_test,c9_test,r10_test,c11_test],batch_size=1)
-y_true=data[8267:11810,10]
+y_pred1=y_pred1[:,0]
 # model.save("./model.multichanel_train")
-def roc(y_true, y_score, pos_label):
-    """
-    y_true：真实标签
-    y_score：模型预测分数
-    pos_label：正样本标签，如“1”
-    """
-    # 统计正样本和负样本的个数
-    num_positive_examples = (y_true == pos_label).sum()
-    num_negtive_examples = len(y_true) - num_positive_examples
+# def roc(y_true, y_score, pos_label):
+#     """
+#     y_true：真实标签
+#     y_score：模型预测分数
+#     pos_label：正样本标签，如“1”
+#     """
+#     # 统计正样本和负样本的个数
+#     num_positive_examples = (y_true == pos_label).sum()
+#     num_negtive_examples = len(y_true) - num_positive_examples
 
-    tp, fp = 0, 0
-    tpr, fpr, thresholds = [], [], []
-    score = max(y_score) + 1
+#     tp, fp = 0, 0
+#     tpr, fpr, thresholds = [], [], []
+#     score = max(y_score) + 1
     
-    # 根据排序后的预测分数分别计算fpr和tpr
-    for i in np.flip(np.argsort(y_score)):
-        # 处理样本预测分数相同的情况
-        if y_score[i] != score:
-            fpr.append(fp / num_negtive_examples)
-            tpr.append(tp / num_positive_examples)
-            thresholds.append(score)
-            score = y_score[i]
+#     # 根据排序后的预测分数分别计算fpr和tpr
+#     for i in np.flip(np.argsort(y_score)):
+#         # 处理样本预测分数相同的情况
+#         if y_score[i] != score:
+#             fpr.append(fp / num_negtive_examples)
+#             tpr.append(tp / num_positive_examples)
+#             thresholds.append(score)
+#             score = y_score[i]
             
-        if y_true[i] == pos_label:
-            tp += 1
-        else:
-            fp += 1
+#         if y_true[i] == pos_label:
+#             tp += 1
+#         else:
+#             fp += 1
 
-    fpr.append(fp / num_negtive_examples)
-    tpr.append(tp / num_positive_examples)
-    thresholds.append(score)
+#     fpr.append(fp / num_negtive_examples)
+#     tpr.append(tp / num_positive_examples)
+#     thresholds.append(score)
 
-    return fpr, tpr, thresholds
-y_pred=np.reshape(y_pred1, (3543,))
-fpr, tpr, thresholds = roc(y_true, y_pred, pos_label=1)
+#     return fpr, tpr, thresholds
+# y_pred=np.reshape(y_pred1, (3543,))
+# fpr, tpr, thresholds = roc(label_test, y_pred, pos_label=1)
 
-fpr1=np.array(fpr)
-tpr1=np.array(tpr)
-thresholds1=np.array(thresholds)
-plt.plot(fpr1, tpr1)
-plt.axis("square")
-plt.xlabel("False positive rate")
-plt.ylabel("True positive rate")
-plt.title("ROC curve")
-plt.show()
+# fpr1=np.array(fpr)
+# tpr1=np.array(tpr)
+# thresholds1=np.array(thresholds)
+# plt.plot(fpr1, tpr1)
+# plt.axis("square")
+# plt.xlabel("False positive rate")
+# plt.ylabel("True positive rate")
+# plt.title("ROC curve")
+# plt.show()
 
 
 def calculate_correlation_rmse(array1, array2):
@@ -291,16 +295,26 @@ def calculate_correlation_rmse(array1, array2):
     # 计算均方根误差
     mse = np.mean((a1 - a2) ** 2)
     rmse = np.sqrt(mse)
+    absolute_errors = np.abs(a1 - a2)
+    mae = np.mean(absolute_errors)
     
-    return correlation, rmse
+    return correlation, mae, rmse
 
 # 示例数据
 
 
 # 计算并打印结果
-corr, rmse = calculate_correlation_rmse(y_true, y_pred)
-print(f"相关系数: {corr:.4f}")
-print(f"均方根误差(RMSE): {rmse:.4f}")
+corr, mae, rmse = calculate_correlation_rmse(label_test, y_pred1)
+
+
+fpr, tpr, thresholds = roc_curve(label_test, y_pred1)
+
+# 计算AUC（ROC曲线下面积）
+roc_auc = auc(fpr, tpr)
+print(f"R2: {corr:.4f}")
+print(f"rmse: {rmse:.4f}")
+print(f"mae: {mae:.4f}")
+print(f"auc: {roc_auc:.4f}")
 
 # data_pre=np.loadtxt(r"E:\2025年工作材料\杜国梁老师合作文件\new\field_data.txt")
 # parameter0_pre=tf.constant(data_pre[:,0]) 
